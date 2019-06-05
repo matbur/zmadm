@@ -1,3 +1,5 @@
+#/usr/bin/env python
+
 from pathlib import Path
 import re
 import io
@@ -13,24 +15,35 @@ from sklearn.model_selection import train_test_split
 from sklearn.base import ClassifierMixin
 from sklearn.preprocessing import LabelEncoder
 
-
 URL = "https://archive.ics.uci.edu/ml/machine-learning-databases/{0}/{0}.data"
 DATA_DIR = Path("./data")
 RESULTS_DIR = Path("./results")
 DATASETS = (
-    # name, label-column, categorical, ignore
-    ("balance-scale", 4, (0,), ()),
-    ("breast-cancer-wisconsin", 10, (), (0,)),
-    ("ecoli", 8, (8,), (0,)),
-    ("glass", 10, (), (0,)),
-    ("haberman", 3, (), ()),
-    ("iris", 4, (4,), ()),
-    ("wine", 0, (), ()),
-    ("letter-recognition", 0, (0,), ()),
+    # name, label-column, categorical, ignore, target
+    ("balance-scale", 0, (0,), (), 'balance'),
+    ("balance-scale", 1, (0,), (), 'left_weight'),
+    ("balance-scale", 2, (0,), (), 'left_distance'),
+    ("balance-scale", 3, (0,), (), 'right_weight'),
+    ("balance-scale", 4, (0,), (), 'right_distance'),
+    ("breast-cancer-wisconsin", 10, (), (0,), ''),
+    ("ecoli", 8, (8,), (0,), ''),
+    ("glass", 10, (), (0,), ''),
+    ("haberman", 3, (), (), ''),
+    ("iris", 4, (4,), (), ''),
+    ("wine", 0, (), (), ''),
+    ("letter-recognition", 0, (0,), (), ''),
+    ("abalone", 8, (0,), (), 'age'),
+    ("abalone", 0, (0,), (), 'sex'),
+    ('cmc', 9, (), (), 'method'),
+    ('cmc', 4, (), (), 'islam'),
+    ('cmc', 8, (), (), 'media'),
+    ('cmc', 5, (), (), 'working'),
+    # ('', 0, (), (), ''),
 )
 
 
-def load_data(dataset: str, label_col: int, categorical=(), ignore=()) -> pd.DataFrame:
+def load_data(dataset: str, label_col: int, categorical=(),
+              ignore=()) -> pd.DataFrame:
     DATA_DIR.mkdir(exist_ok=True)
     data_file = DATA_DIR / f"{dataset}.csv"
 
@@ -71,11 +84,11 @@ def load_data(dataset: str, label_col: int, categorical=(), ignore=()) -> pd.Dat
 
 
 def get_score(
-    model: ClassifierMixin,
-    X_train: pd.DataFrame,
-    y_train: pd.Series,
-    X_test: pd.DataFrame,
-    y_test: pd.Series,
+        model: ClassifierMixin,
+        X_train: pd.DataFrame,
+        y_train: pd.Series,
+        X_test: pd.DataFrame,
+        y_test: pd.Series,
 ) -> int:
     model.fit(X_train, y_train)
     score = model.score(X_test, y_test)
@@ -85,9 +98,9 @@ def get_score(
 def plot(dataset, scores):
     plot_file = RESULTS_DIR / f"{dataset}.png"
 
-    bottom = min(scores.values()) ** 1.5 - 0.01
+    bottom = min(scores.values())**1.5 - 0.01
     heights = [i - bottom for i in scores.values()]
-    print(bottom, heights)
+    # print(bottom, heights)
 
     fig, ax = plt.subplots(1, 1)
     bar = ax.bar(scores.keys(), heights, bottom=bottom)
@@ -132,7 +145,14 @@ def _label_bar(ax, bars, text_format, **kwargs):
             color = "black"
             text_y = bar.get_height() + outside_distance
 
-        ax.text(text_x, text_y, text, ha="center", va="bottom", color=color, **kwargs)
+        ax.text(
+            text_x,
+            text_y,
+            text,
+            ha="center",
+            va="bottom",
+            color=color,
+            **kwargs)
 
 
 def _label_barh(ax, bars, text_format, **kwargs):
@@ -168,10 +188,10 @@ def boosting_hyperparameters():
 def test_bagging(data):
     l = []
     for i in bagging_hyperparameters():
-        print("running bagging", i)
+        # print("running bagging", i)
         model = BaggingClassifier(**i)
         score = get_score(model, *data)
-        print(score)
+        # print(score)
         l.append({"bagging": i, "score": score})
     return sorted(l, key=lambda x: x["score"], reverse=True)
 
@@ -179,25 +199,11 @@ def test_bagging(data):
 def test_boosting(data):
     l = []
     for i in boosting_hyperparameters():
-        print("running boosting", i)
+        # print("running boosting", i)
         model = AdaBoostClassifier(**i)
         score = get_score(model, *data)
-        print(score)
+        # print(score)
         l.append({"boosting": i, "score": score})
-    return sorted(l, key=lambda x: x["score"], reverse=True)
-
-
-def test_bagging_boosted(data, bagging, boosting):
-    l = []
-    for i in bagging:
-        i = i["bagging"]
-        for j in boosting:
-            j = j["boosting"]
-            print("running bagging boosted", i, j)
-            model = BaggingClassifier(AdaBoostClassifier(**j), **i)
-            score = get_score(model, *data)
-            print(score)
-            l.append({"bagging": i, "boosting": j, "score": score})
     return sorted(l, key=lambda x: x["score"], reverse=True)
 
 
@@ -207,13 +213,11 @@ def main():
 
     results = {}
     for i in DATASETS:
-        dataset = i[0]
+        dataset = f'{i[0]}_{i[-1]}' if i[-1] != '' else i[0]
         print(dataset)
-        X, y = load_data(*i)
+        X, y = load_data(*i[:-1])
         X_train, X_test, y_train, y_test = train_test_split(X, y)
         data = X_train, y_train, X_test, y_test
-
-        n = 2 if dataset == "letter-recognition" else 5
 
         results_bagging = test_bagging(data)
         with open(RESULTS_DIR / f"{dataset}_bagging.json", "w") as f:
@@ -225,17 +229,9 @@ def main():
             json.dump(result_boosting, f, indent="  ")
         best_boosting = result_boosting[0]
 
-        results_bagging_boosted = test_bagging_boosted(
-            data, results_bagging[:n], result_boosting[:n]
-        )
-        with open(RESULTS_DIR / f"{dataset}_bagging_boosted.json", "w") as f:
-            json.dump(results_bagging_boosted, f, indent="  ")
-        best_bagging_boosted = results_bagging_boosted[0]
-
         scores = {
             "bagging": best_bagging["score"],
             "adaboost": best_boosting["score"],
-            "bagging_adaboost": best_bagging_boosted["score"],
         }
 
         for method, score in scores.items():
