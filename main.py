@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import re
+import math
 import io
 import json
 from pprint import pprint
@@ -20,20 +21,20 @@ DATA_DIR = Path("./data")
 RESULTS_DIR = Path("./results")
 DATASETS = (
     # name, label-column, categorical, ignore, target
-    ("balance-scale", 0, (0,), (), 'balance'),
-    ("balance-scale", 1, (0,), (), 'left_weight'),
-    ("balance-scale", 2, (0,), (), 'left_distance'),
-    ("balance-scale", 3, (0,), (), 'right_weight'),
-    ("balance-scale", 4, (0,), (), 'right_distance'),
-    ("breast-cancer-wisconsin", 10, (), (0,), ''),
-    ("ecoli", 8, (8,), (0,), ''),
-    ("glass", 10, (), (0,), ''),
+    ("balance-scale", 0, (0, ), (), 'balance'),
+    ("balance-scale", 1, (0, ), (), 'left_weight'),
+    ("balance-scale", 2, (0, ), (), 'left_distance'),
+    ("balance-scale", 3, (0, ), (), 'right_weight'),
+    ("balance-scale", 4, (0, ), (), 'right_distance'),
+    ("breast-cancer-wisconsin", 10, (), (0, ), ''),
+    ("ecoli", 8, (8, ), (0, ), ''),
+    ("glass", 10, (), (0, ), ''),
     ("haberman", 3, (), (), ''),
-    ("iris", 4, (4,), (), ''),
+    ("iris", 4, (4, ), (), ''),
     ("wine", 0, (), (), ''),
-    ("letter-recognition", 0, (0,), (), ''),
-    ("abalone", 8, (0,), (), 'age'),
-    ("abalone", 0, (0,), (), 'sex'),
+    ("letter-recognition", 0, (0, ), (), ''),
+    ("abalone", 8, (0, ), (), 'age'),
+    ("abalone", 0, (0, ), (), 'sex'),
     ('cmc', 9, (), (), 'method'),
     ('cmc', 4, (), (), 'islam'),
     ('cmc', 8, (), (), 'media'),
@@ -266,5 +267,66 @@ def main():
                 v['score']))
 
 
+def images():
+    TEMPLATE = r"""\begin{{figure}}[h!]
+\item{{{}}}
+\begin{{center}}
+\includegraphics[width=250pt]{{{}}}
+\caption{{Dokładność dla bazy {}}}
+\end{{center}}
+\end{{figure}}
+
+"""
+    with open(RESULTS_DIR / 'plots.txt', 'w') as f:
+        for i in sorted(RESULTS_DIR.glob('*.png')):
+            name = i.stem.replace('-', ' ').replace('_', ' ')
+            f.write(
+                TEMPLATE.format(
+                    name,
+                    i.as_posix().replace(RESULTS_DIR.as_posix(), 'img'), name))
+
+
+def datasets():
+    with open(RESULTS_DIR / 'datasets.txt', 'w') as f:
+        for i in DATASETS:
+            dataset = f'{i[0]}_{i[-1]}' if i[-1] != '' else i[0]
+            dataset = dataset.replace('-', ' ').replace('_', ' ')
+            X, y = load_data(*i[:-1])
+            ylen = len(np.unique(y))
+            f.write('{} & {} & {} & {} \\\\ \\hline \n'.format(
+                dataset, X.shape[0], X.shape[1], ylen))
+
+
+def wilcoxon():
+    with open(RESULTS_DIR / 'bests_bagging.json') as f:
+        bests_bagging = json.load(f)
+
+    with open(RESULTS_DIR / 'bests_boosting.json') as f:
+        bests_boosting = json.load(f)
+
+    def foo(ba, bo):
+        if math.isclose(ba, bo):
+            return 'R & R'
+        if ba > bo:
+            return '+ & -'
+        if bo > ba:
+            return '- & +'
+
+        exit(42)
+
+    with open(RESULTS_DIR / 'wilcoxon.txt', 'w') as f:
+        for i in DATASETS:
+            dataset = f'{i[0]}_{i[-1]}' if i[-1] != '' else i[0]
+            bagging = bests_bagging[dataset]['score']
+            boosting = bests_boosting[dataset]['score']
+            dataset = dataset.replace('-', ' ').replace('_', ' ')
+            f.write(
+                '\multicolumn{{1}}{{|l|}}{{{}}} & {:.03f} & {:.3f} & {} \\\\ \hline \n'
+                .format(dataset, bagging, boosting, foo(bagging, boosting)))
+
+
 if __name__ == "__main__":
     main()
+    images()
+    datasets()
+    wilcoxon()
