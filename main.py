@@ -212,6 +212,8 @@ def main():
     RESULTS_DIR.mkdir(exist_ok=True)
 
     results = {}
+    bests_bagging = {}
+    bests_boosting = {}
     for i in DATASETS:
         dataset = f'{i[0]}_{i[-1]}' if i[-1] != '' else i[0]
         print(dataset)
@@ -239,9 +241,29 @@ def main():
 
         plot(dataset, scores)
         results[dataset] = scores
+        bests_bagging[dataset] = best_bagging
+        bests_boosting[dataset] = best_boosting
 
     with open(RESULTS_DIR / "results.json", "w") as f:
         json.dump(results, f, indent="  ")
+
+    with open(RESULTS_DIR / "bests_bagging.json", "w") as f:
+        json.dump(bests_bagging, f, indent="  ")
+
+    with open(RESULTS_DIR / 'bagging.txt', 'w') as f:
+        for i, (k, v) in enumerate(bests_bagging.items(), 1):
+            f.write('{} & {} & {:.3f} \\\\ \\hline \n'.format(
+                i, ' & '.join([str(i) for i in v['bagging'].values()]),
+                v['score']))
+
+    with open(RESULTS_DIR / "bests_boosting.json", "w") as f:
+        json.dump(bests_boosting, f, indent="  ")
+
+    with open(RESULTS_DIR / 'boosting.txt', 'w') as f:
+        for i, (k, v) in enumerate(bests_boosting.items(), 1):
+            f.write('{} & {} & {:.3f} \\\\ \\hline \n'.format(
+                i, ' & '.join([str(i) for i in v['boosting'].values()]),
+                v['score']))
 
 
 if __name__ == "__main__":
