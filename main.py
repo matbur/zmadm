@@ -21,11 +21,7 @@ DATA_DIR = Path("./data")
 RESULTS_DIR = Path("./results")
 DATASETS = (
     # name, label-column, categorical, ignore, target
-    ("balance-scale", 0, (0, ), (), 'balance'),
-    ("balance-scale", 1, (0, ), (), 'left_weight'),
-    ("balance-scale", 2, (0, ), (), 'left_distance'),
-    ("balance-scale", 3, (0, ), (), 'right_weight'),
-    ("balance-scale", 4, (0, ), (), 'right_distance'),
+    ("balance-scale", 0, (0, ), (), ''),
     ("breast-cancer-wisconsin", 10, (), (0, ), ''),
     ("ecoli", 8, (8, ), (0, ), ''),
     ("glass", 10, (), (0, ), ''),
@@ -33,12 +29,20 @@ DATASETS = (
     ("iris", 4, (4, ), (), ''),
     ("wine", 0, (), (), ''),
     ("letter-recognition", 0, (0, ), (), ''),
-    ("abalone", 8, (0, ), (), 'age'),
     ("abalone", 0, (0, ), (), 'sex'),
     ('cmc', 9, (), (), 'method'),
     ('cmc', 4, (), (), 'islam'),
     ('cmc', 8, (), (), 'media'),
     ('cmc', 5, (), (), 'working'),
+    ('car', 6, (0, 1, 2, 3, 4, 5, 6), (), ''),
+    ('hayes-roth', 5, (), (), ''),
+    ('tae', 5, (), (), ''),
+    ('lymphography', 18, (), (), ''),
+    ('winequality-red', 11, (), (), ''),
+    ('heart', 13, (), (), ''),
+    ('pulsar_stars', 8, (), (), ''),
+    ('soybean-small', 35, (), (), ''),
+    ('flag', 28, (17, 28, 29), (0, ), ''),
     # ('', 0, (), (), ''),
 )
 
